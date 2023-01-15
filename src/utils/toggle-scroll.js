@@ -4,7 +4,6 @@ export const toggleScroll = {
   },
 
   scrollOff() {
-    console.log(this.body);
     this.ref.body.style.overflow = 'hidden';
   },
 

@@ -5,7 +5,17 @@ import { ImageGalleryList } from './ImageGallery.styled';
 export const ImageGallery = ({ images, openModal }) => {
   return (
     <ImageGalleryList>
-      <ImageGalleryItem images={images} openModal={openModal} />
+      {images.map(({ id, webformatURL, tags, largeImageURL }) => {
+        return (
+          <ImageGalleryItem
+            key={id}
+            webformatURL={webformatURL}
+            tags={tags}
+            largeImageURL={largeImageURL}
+            openModal={openModal}
+          />
+        );
+      })}
     </ImageGalleryList>
   );
 };

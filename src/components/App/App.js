@@ -20,7 +20,7 @@ export class App extends Component {
   };
 
   async componentDidUpdate(_, prevState) {
-    const { query, page } = this.state;
+    const { query, page, modalImgProp } = this.state;
 
     if (query !== prevState.query || page !== prevState.page) {
       this.setState({ loading: true });
@@ -52,7 +52,7 @@ export class App extends Component {
       }
     }
 
-    if (page !== 1) {
+    if (page !== 1 && !modalImgProp) {
       window.scrollBy({ top: window.innerHeight - 135, behavior: 'smooth' });
     }
   }
@@ -82,6 +82,7 @@ export class App extends Component {
     this.setState(prevState => {
       return {
         page: prevState.page + 1,
+        modalImgProp: null,
       };
     });
   };
