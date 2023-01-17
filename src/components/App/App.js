@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { Loader } from 'components/Loader/Loader';
@@ -8,59 +8,50 @@ import { Searchbar } from 'components/Searchbar/Searchbar';
 import { fetchImages } from 'utils/fetch-image';
 import { toggleScroll } from 'utils/toggle-scroll';
 
-export class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    page: 1,
-    totalPages: null,
-    loading: false,
-    modalIsOpen: false,
-    modalImgProp: null,
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [modalImgProp, setModalImgProp] = useState(null);
 
-  async componentDidUpdate(_, prevState) {
-    const { query, page, modalImgProp } = this.state;
-
-    if (query !== prevState.query || page !== prevState.page) {
-      this.setState({ loading: true });
-
+  useEffect(() => {
+    const getImages = async () => {
+      setLoading(true);
       const response = await (await fetchImages(query, page)).data;
       const imagesArray = response.hits;
 
-      const totalPages = Math.ceil(response.totalHits / 12);
+      const pages = Math.ceil(response.totalHits / 12);
 
-      this.setState(prevState => {
-        return {
-          images: [...prevState.images, ...imagesArray],
-
-          totalPages,
-          loading: false,
-        };
-      });
+      setImages(prevImages => [...prevImages, ...imagesArray]);
+      setTotalPages(pages);
+      setLoading(false);
 
       if (imagesArray.length === 0) {
-        this.setState({
-          images: [],
-          page: 1,
-          loading: false,
-        });
+        setImages([]);
+        setPage(1);
+        setLoading(false);
 
         return toast.error(
           "Sorry, but we din't find any images, try it again."
         );
       }
-    }
+    };
 
+    query && getImages();
+  }, [query, page]);
+
+  useEffect(() => {
     if (page !== 1 && !modalImgProp) {
       window.scrollBy({ top: window.innerHeight - 135, behavior: 'smooth' });
     }
-  }
+  });
 
-  getQuery = e => {
+  const getQuery = e => {
     e.preventDefault();
 
-    const { query } = this.state;
     const searchQuery = e.target.elements.search.value.trim().toLowerCase();
 
     if (searchQuery.length === 0) {
@@ -68,26 +59,20 @@ export class App extends Component {
     }
 
     if (searchQuery !== query) {
-      this.setState({
-        query: searchQuery,
-        images: [],
-        page: 1,
-        totalPages: null,
-        modalImgProp: null,
-      });
+      setQuery(searchQuery);
+      setImages([]);
+      setPage(1);
+      setTotalPages(null);
+      setModalImgProp(null);
     }
   };
 
-  loadMorePage = () => {
-    this.setState(prevState => {
-      return {
-        page: prevState.page + 1,
-        modalImgProp: null,
-      };
-    });
+  const loadMorePage = () => {
+    setPage(prevPage => prevPage + 1);
+    setModalImgProp(null);
   };
 
-  openModal = e => {
+  const openModal = e => {
     const largeImgUrl = e.target.dataset.imgUrl;
     const imgAlt = e.target.alt;
 
@@ -95,53 +80,43 @@ export class App extends Component {
       return;
     }
 
-    this.setState({
-      modalIsOpen: true,
-      modalImgProp: {
-        url: largeImgUrl,
-        alt: imgAlt,
-      },
+    setModalIsOpen(true);
+    setModalImgProp({
+      url: largeImgUrl,
+      alt: imgAlt,
     });
 
-    document.addEventListener('keydown', this.closeModalOnEsc);
+    document.addEventListener('keydown', closeModalOnEsc);
     toggleScroll.scrollOff();
   };
 
-  closeModal = e => {
-    document.removeEventListener('keydown', this.closeModalOnEsc);
-    this.setState({ modalIsOpen: false });
+  const closeModalOnEsc = e => {
+    if (e.code === 'Escape') {
+      closeModal();
+    }
+  };
+  const closeModal = e => {
+    document.removeEventListener('keydown', closeModalOnEsc);
+    setModalIsOpen(false);
     toggleScroll.scrollOn();
   };
 
-  closeModalOnClick = e => {
+  const closeModalOnClick = e => {
     if (e.target.dataset.modal) {
-      this.closeModal();
-    }
-  };
-  closeModalOnEsc = e => {
-    if (e.code === 'Escape') {
-      this.closeModal();
+      closeModal();
     }
   };
 
-  render() {
-    const { page, totalPages, loading, modalIsOpen, modalImgProp } = this.state;
-    return (
-      <>
-        <Toaster />
-        <Searchbar onSubmit={this.getQuery} />
-        <ImageGallery images={this.state.images} openModal={this.openModal} />
-        {totalPages > page && (
-          <LoadMoreButton loadOnClick={this.loadMorePage} />
-        )}
-        {modalIsOpen && (
-          <Modal
-            modalImgProp={modalImgProp}
-            closeModal={this.closeModalOnClick}
-          />
-        )}
-        {loading && <Loader />}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <Toaster />
+      <Searchbar onSubmit={getQuery} />
+      <ImageGallery images={images} openModal={openModal} />
+      {totalPages > page && <LoadMoreButton loadOnClick={loadMorePage} />}
+      {modalIsOpen && (
+        <Modal modalImgProp={modalImgProp} closeModal={closeModalOnClick} />
+      )}
+      {loading && <Loader />}
+    </>
+  );
+};
